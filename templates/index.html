@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CODEPHANTOM AI — Ask. Code. Debug. Execute.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;800&family=Zen+Kaku+Gothic+New:wght@300;500;900&family=Cinzel:wght@400;700;900&family=Space+Grotesk:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="arena.css" />
+</head>
+<body>
+
+<!-- ══════════ PRELOADER ══════════ -->
+<div class="loader" id="loader">
+  <div class="loader__inner">
+    <div class="loader__glyph">CODEPHANTOM</div>
+    <div class="loader__bar"><span id="loaderFill"></span></div>
+    <div class="loader__meta">
+      <span>INITIALIZING</span>
+      <span id="loaderPct">00</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ AMBIENT LAYERS ══════════ -->
+<div class="grain" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+<div class="scanlines" aria-hidden="true"></div>
+
+<!-- ══════════ BLACK FLAME HEM ══════════ -->
+<div class="amaterasu-bed" aria-hidden="true"></div>
+<canvas class="amaterasu" id="amaterasuCanvas" aria-hidden="true"></canvas>
+
+<!-- ══════════ STORM ══════════ -->
+<div class="storm" aria-hidden="true">
+  <div class="storm__flash" id="stormFlash"></div>
+  <svg class="storm__bolt" id="stormBolt" viewBox="0 0 1000 1000" preserveAspectRatio="none">
+    <path id="boltPath" d="" fill="none" stroke="#fff" stroke-width="2"
+          stroke-linejoin="round" stroke-linecap="round"/>
+    <path id="boltGlow" d="" fill="none" stroke="#9fd8ff" stroke-width="9"
+          stroke-linejoin="round" stroke-linecap="round" opacity=".45"/>
+  </svg>
+</div>
+<div class="cursor" id="cursor" aria-hidden="true"><span></span></div>
+
+<!-- ══════════ FIXED CHROME ══════════ -->
+<header class="chrome">
+  <div class="chrome__mark">
+    <svg viewBox="0 0 100 100" class="uchiwa" aria-hidden="true">
+      <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M50 12 A38 38 0 0 1 50 88 A19 19 0 0 1 50 50 A19 19 0 0 0 50 12Z" fill="currentColor" opacity=".9"/>
+      <circle cx="50" cy="31" r="6" fill="var(--ink)"/>
+      <circle cx="50" cy="69" r="6" fill="currentColor"/>
+    </svg>
+    <span>CODEPHANTOM</span>
+  </div>
+  <nav class="chrome__nav">
+    <a href="#eyes" data-jp="WATCH">EYES</a>
+    <a href="#jutsu" data-jp="BUILD">ARENA</a>
+  </nav>
+</header>
+
+<div class="rail rail--left" aria-hidden="true">
+  <span>CODEPHANTOM · EVERY LANGUAGE · EVERY BUG</span>
+</div>
+<div class="rail rail--right" aria-hidden="true">
+  <span id="railScroll">SCROLL 000%</span>
+</div>
+
+<div class="hint" id="hint">
+  <span class="hint__jp">SCROLL</span>
+  <span class="hint__line"></span>
+  <span class="hint__en">SCROLL TO OPEN ITS EYES</span>
+</div>
+
+<main>
+
+<!-- ══════════ ACT I — SCROLL SCRUB ══════════ -->
+<section class="scrub" id="scrub">
+  <div class="scrub__sticky">
+    <canvas id="mainCanvas"></canvas>
+    <div class="scrub__glow" id="scrubGlow"></div>
+
+    <!-- phase captions -->
+    <div class="phase" data-phase="0">
+      <h1 class="phase__jp">Silence</h1>
+      <p class="phase__en">BEFORE THE FIRST LINE</p>
+      <p class="phase__sub">Every bug hides in plain sight. Paste your code and it starts to show.</p>
+    </div>
+    <div class="phase" data-phase="1">
+      <h2 class="phase__jp">Awaken</h2>
+      <p class="phase__en">THE PHANTOM OPENS ITS EYES</p>
+      <p class="phase__sub">Real insight belongs to whoever actually reads the code.</p>
+    </div>
+    <div class="phase" data-phase="2">
+      <h2 class="phase__jp">Vision</h2>
+      <p class="phase__en">NOTHING ESCAPES IT</p>
+      <p class="phase__sub">Syntax errors, logic slips, unsafe input — all seen at once.</p>
+    </div>
+    <div class="phase" data-phase="3">
+      <h2 class="phase__jp">Legion</h2>
+      <p class="phase__en">A THOUSAND FIXES</p>
+      <p class="phase__sub">Debug, explain, optimize, convert and secure — in sixteen languages.</p>
+    </div>
+
+    <!-- Title lockup, only in the first beat -->
+    <div class="titleblock" id="titleblock">
+      <p class="titleblock__kicker">WELCOME TO</p>
+      <h1 class="titleblock__jp">CODE<span>PHANTOM</span></h1>
+      <p class="titleblock__en">A I &nbsp;·&nbsp; E V E R Y &nbsp; L A N G U A G E . &nbsp; E V E R Y &nbsp; B U G .</p>
+      <a class="enter" href="#jutsu">Initialize coding system</a>
+    </div>
+
+    <canvas id="featherCanvas" class="feathers"></canvas>
+  </div>
+</section>
+
+<!-- ══════════ ACT II — MOUSE-TRACKED EYES ══════════ -->
+<section class="eyes" id="eyes">
+  <div class="eyes__sticky">
+    <canvas id="eyeCanvas"></canvas>
+    <div class="eyes__flare" id="eyeFlare"></div>
+    <div class="eyes__frame">
+      <div class="eyes__label eyes__label--tl">PHANTOM EYE</div>
+      <div class="eyes__label eyes__label--tr">LIVE TRACK</div>
+      <div class="eyes__label eyes__label--bl" id="eyeReadout">GAZE LEFT 00.0 / FRAME 00</div>
+      <div class="eyes__label eyes__label--br">MOVE YOUR CURSOR</div>
+    </div>
+    <div class="eyes__copy">
+      <h2>It sees <span>you</span></h2>
+      <p>Wherever you move, it follows.</p>
+      <p class="eyes__note">Nine measured gaze positions, mapped left to right</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ ACT III — JUTSU GRID ══════════ -->
+<section class="jutsu" id="jutsu">
+  <!-- background plate revealed under the ghost cursor -->
+  <div class="jutsu__reveal" id="jutsuReveal" aria-hidden="true"></div>
+  <div class="jutsu__rain" aria-hidden="true"></div>
+  <!-- ported reactbits.dev ghost-cursor, raw WebGL -->
+  <canvas class="ghost" id="ghostCanvas" aria-hidden="true"></canvas>
+
+  <div class="jutsu__inner">
+    <div class="jutsu__head">
+      <span class="eyebrow" data-px="0.10">THE CODING ARENA</span>
+      <h2 data-px="0.18">Every language.<br>Every bug.</h2>
+      <p data-px="0.26">Every language. Every bug. Paste code or describe a problem, pick a mode, and the phantom answers.</p>
+    </div>
+
+    <div class="arena" id="arena">
+      <aside class="arena__side">
+        <div><h4>Mode</h4><div class="modes" id="modes"></div></div>
+        <label class="field">Language<select id="lang"></select></label>
+        <label class="field" id="targetWrap" hidden>Convert to<select id="targetLang"></select></label>
+        <div class="history"><h4>Mission history</h4><ul id="historyList"></ul><button class="linkbtn" id="clearHistory" type="button">Clear history</button></div>
+        <div class="status" id="status"><span id="statusTxt">Checking backend…</span></div>
+      </aside>
+      <section class="arena__main">
+        <div class="tabs" role="tablist">
+          <button class="tab on" type="button" role="tab" data-tab="assist">AI Assistant</button>
+          <button class="tab" type="button" role="tab" data-tab="code">Code &amp; Run</button>
+          <b class="tabs__mode" id="modeName">Solve a problem</b>
+        </div>
+
+        <div class="view" id="viewAssist">
+          <div class="log" id="log" aria-live="polite"></div>
+          <div class="composer">
+            <div class="codeinfo" id="codeInfo" hidden></div>
+            <div class="voicebar" id="voiceBar" role="status" hidden></div>
+            <div class="promptrow">
+              <textarea id="prompt" rows="2"></textarea>
+              <button type="button" id="mic" class="mic" title="Speak your request" aria-label="Speak your request"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+            </div>
+            <div class="composer__row">
+              <small>Enter to send · Shift + Enter for a new line · AI answers are not executed</small>
+              <span><button type="button" class="boxbtn" id="newChat">New mission</button> <button type="button" id="send">Generate solution</button></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="view" id="viewCode" hidden>
+          <div class="codebar">
+            <button type="button" class="go" id="runBtn">Run</button>
+            <button type="button" class="ghostbtn" id="testBtn">Run tests</button>
+            <span class="ask">Ask AI:
+              <button type="button" data-ask="debug">Fix</button><button type="button" data-ask="explain">Explain</button><button type="button" data-ask="optimize">Optimize</button><button type="button" data-ask="security">Security</button><button type="button" data-ask="tests">Tests</button>
+            </span>
+            <small id="runInfo"></small>
+          </div>
+          <div class="editorwrap"><div id="editor"></div><textarea id="codeFallback" spellcheck="false" hidden></textarea></div>
+          <div class="io">
+            <div class="io__col"><h5>Input (stdin)</h5><textarea id="stdin" spellcheck="false" placeholder="Optional input for the program"></textarea></div>
+            <div class="io__col"><h5>Real output <em>· executed in sandbox</em></h5><div id="runOut" class="runout muted">Press Run (Ctrl + Enter) to execute your code.</div></div>
+          </div>
+          <div class="tests">
+            <div class="tests__head"><h5>Test cases <em>· real results, compared exactly</em></h5><button type="button" class="linkbtn" id="addTest">+ Add test</button></div>
+            <div id="testList"></div>
+            <div id="testResults"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- bottom-right anchor -->
+  <div class="jutsu__amaterasu" aria-hidden="true">
+    <span class="jutsu__amaterasu-jp">PHANTOM</span>
+    <span class="jutsu__amaterasu-ro">CODEPHANTOM AI</span>
+    <span class="jutsu__amaterasu-sub">Ask. Code. Debug. Execute. Evolve.</span>
+  </div>
+</section>
+
+
+
+</main>
+
+<!-- ══════════ STICKY BADGE ══════════ -->
+<div class="sticky-badge" id="stickyBadge">
+  <span class="sticky-badge__jp">PHANTOM</span>
+  <span class="sticky-badge__en">AI ONLINE</span>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.5/dist/purify.min.js"></script>
+<script src="main.js"></script>
+<script src="arena.js"></script>
+</body>
+</html>
