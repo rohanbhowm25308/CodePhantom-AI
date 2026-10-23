@@ -440,6 +440,7 @@ let amaCtx = fitCanvas(amaCanvas);
 const flames = [];
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let amaPainted = false;
+const motionOff = () => document.documentElement.dataset.motion === 'reduced';   // user's Motion switch
 let frameN = 0;
 
 function seedFlames() {
@@ -816,6 +817,7 @@ function flicker(el, peak, ms) {
 }
 
 function strike() {
+  if (motionOff()) { stormTimer = setTimeout(strike, 3000); return; }
   const heavy = Math.random() < 0.55;           // heavy = visible bolt
   const power = heavy ? 1 : 0.55 + Math.random() * 0.25;
 
@@ -890,7 +892,7 @@ function tick() {
 
   /* — Amaterasu: the hem never stops burning (one static pass if the user
        asked for reduced motion) — */
-  if (!reduceMotion) { if ((++frameN & 1) === 0) paintAmaterasu(performance.now() / 1000); }  /* 30 fps is plenty for fire */
+  if (!reduceMotion && !motionOff()) { if ((++frameN & 1) === 0) paintAmaterasu(performance.now() / 1000); }  /* 30 fps is plenty for fire */
   else if (!amaPainted) { paintAmaterasu(0); amaPainted = true; }
 
   /* — Act I: scrubbed frames — */
@@ -974,7 +976,7 @@ function tick() {
     rs.setProperty('--rx', (revealX * 100).toFixed(2) + '%');
     rs.setProperty('--ry', (revealY * 100).toFixed(2) + '%');
     rs.setProperty('--r',  revealR.toFixed(0) + 'px');
-    if (ghost.ok && (jutsuLit || revealR > 1)) ghost.render();
+    if (ghost.ok && !motionOff() && (jutsuLit || revealR > 1)) ghost.render();
   }
 
   /* — cursor — */

@@ -9,6 +9,7 @@ If neither is available, running is disabled and the UI says so.
 """
 import base64
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -24,6 +25,7 @@ RUN_MEMORY = os.getenv("RUN_MEMORY", "512m")
 MAX_OUT = 20_000                                        # chars of stdout / stderr returned
 MAX_CODE = 50_000
 MAX_STDIN = 10_000
+_tl = threading.local()
 _slots = threading.BoundedSemaphore(int(os.getenv("RUN_CONCURRENCY", "2")))
 
 # key = lower-case UI language name
@@ -82,15 +84,19 @@ def _safe_env(work):
     return keep
 
 
-def _run_local(lang, code, stdin):
+def _run_local(lang, code, stdin, files=None, entry=None):
     spec = LOCAL_LANGS[lang]
     work = tempfile.mkdtemp(prefix="cp_")
     env = _safe_env(work)
     exe = os.path.join(work, "main" + EXE)
     fix = lambda cmd: [exe if c == "{exe}" else c for c in cmd]
     try:
-        with open(os.path.join(work, spec["file"]), "w", encoding="utf-8") as f:
-            f.write(code)
+        main = entry or spec["file"]
+        for rel, text in (files or {main: code}).items():
+            dest = os.path.join(work, rel)
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            with open(dest, "w", encoding="utf-8") as f:
+                f.write(text)
         start = time.time()
         if spec.get("build"):
             try:
@@ -102,7 +108,7 @@ def _run_local(lang, code, stdin):
                 return dict(status="compile_error", stdout="", stderr=_clip(msg), exit_code=b.returncode, time_ms=None)
         t0 = time.time()
         try:
-            p = subprocess.run(fix(spec["run"]), cwd=work, env=env, input=stdin.encode(), capture_output=True, timeout=RUN_TIMEOUT)
+            p = subprocess.run(fix([main if c == spec["file"] else c for c in spec["run"]]), cwd=work, env=env, input=stdin.encode(), capture_output=True, timeout=RUN_TIMEOUT)
         except subprocess.TimeoutExpired as e:
             return dict(status="timeout", stdout=_clip((e.stdout or b"").decode("utf-8", "replace")),
                         stderr=f"Time limit exceeded ({RUN_TIMEOUT} s).", exit_code=None, time_ms=int((time.time() - t0) * 1000))
@@ -155,21 +161,30 @@ def languages():
 
 
 def _clip(text: str) -> str:
-    return text if len(text) <= MAX_OUT else text[:MAX_OUT] + "\n…[output truncated]"
+    limit = getattr(_tl, "limit", MAX_OUT)
+    return text if len(text) <= limit else text[:limit] + "\n…[output truncated]"
 
 
 # ───────────────────────── Docker ─────────────────────────
-def _run_docker(spec, code, stdin):
+def _run_docker(spec, code, stdin, files=None, entry=None):
     work = tempfile.mkdtemp(prefix="cp_")
     name = "cp_" + uuid.uuid4().hex[:12]
     try:
         os.chmod(work, 0o777)
-        with open(os.path.join(work, spec["file"]), "w", encoding="utf-8") as f:
-            f.write(code)
+        main = entry or spec["file"]
+        for rel, text in (files or {main: code}).items():
+            dest = os.path.join(work, rel)
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            with open(dest, "w", encoding="utf-8") as f:
+                f.write(text)
+        for root_dir, dirs, _ in os.walk(work):
+            for dname in dirs:
+                os.chmod(os.path.join(root_dir, dname), 0o777)
+        run_cmd = spec["run"].replace(spec["file"], shlex.quote(main))
         steps = []
         if spec.get("build"):
             steps.append(f"timeout 30 {spec['build']} 2>.build.log || {{ touch .build_failed; cat .build.log >&2; exit 1; }}")
-        steps.append(f"timeout {RUN_TIMEOUT} {spec['run']}; rc=$?; case $rc in 124|137|143) touch .timed_out;; esac; exit $rc")
+        steps.append(f"timeout {RUN_TIMEOUT} {run_cmd}; rc=$?; case $rc in 124|137|143) touch .timed_out;; esac; exit $rc")
         cmd = [
             "docker", "run", "--rm", "-i", "--name", name, "--pull", "never",
             "--network", "none", "--memory", RUN_MEMORY, "--memory-swap", RUN_MEMORY, "--cpus", "1",
@@ -239,22 +254,64 @@ def _run_judge0(lang, code, stdin):
 
 
 # ───────────────────────── public API ─────────────────────────
-def execute(language: str, code: str, stdin: str = ""):
+def execute(language: str, code: str, stdin: str = "", max_out: int = None, max_code: int = None):
     lang = language.strip().lower()
     b = backend()
     if not b:
         raise SandboxError("Code execution is not enabled on this server (install Docker or set JUDGE0_URL).")
     if lang not in languages():
         raise SandboxError(f"Running {language} is not enabled on this server.")
-    if len(code) > MAX_CODE:
+    if len(code) > (max_code or MAX_CODE):
         raise SandboxError("Code is too long to run.")
     if not _slots.acquire(timeout=10):
         raise SandboxError("The sandbox is busy. Try again in a few seconds.")
+    _tl.limit = max_out or MAX_OUT
     try:
         if b == "judge0":
             return _run_judge0(lang, code, stdin[:MAX_STDIN])
         if b == "docker":
             return _run_docker(DOCKER_LANGS[lang], code, stdin[:MAX_STDIN])
         return _run_local(lang, code, stdin[:MAX_STDIN])
+    finally:
+        _slots.release()
+
+
+# ───────────────────────── multi-file projects ─────────────────────────
+MULTI_FILE = {"python", "javascript", "ruby", "php", "bash"}      # interpreted languages: all files are written, entry is run
+MAX_PROJECT = 700_000
+
+
+def safe_rel(p: str) -> str:
+    """Normalise a project path; reject anything that could escape the work directory."""
+    p = str(p).replace("\\", "/").strip().lstrip("/")
+    parts = [x for x in p.split("/") if x not in ("", ".")]
+    if not parts or any(x == ".." for x in parts) or len("/".join(parts)) > 200 or ":" in parts[0]:
+        raise SandboxError(f"Unsafe file path: {p!r}")
+    return "/".join(parts)
+
+
+def execute_files(language: str, files: dict, entry: str, stdin: str = "", max_out: int = None):
+    """Run `entry` from a project. Interpreted languages see every file; compiled languages run the entry file alone."""
+    lang = language.strip().lower()
+    entry = safe_rel(entry)
+    files = {safe_rel(k): v for k, v in files.items()}
+    if entry not in files:
+        raise SandboxError(f"Entry file {entry} is not in the project.")
+    if sum(len(v) for v in files.values()) > MAX_PROJECT:
+        raise SandboxError("The project is too large to run.")
+    if lang not in MULTI_FILE or len(files) == 1:
+        return execute(language, files[entry], stdin, max_out=max_out)
+    b = backend()
+    if not b or lang not in languages():
+        raise SandboxError(f"Running {language} is not enabled on this server.")
+    if b == "judge0":
+        raise SandboxError("Running multi-file projects needs Docker or the local runner (Judge0 runs one file only).")
+    if not _slots.acquire(timeout=10):
+        raise SandboxError("The sandbox is busy. Try again in a few seconds.")
+    _tl.limit = max_out or MAX_OUT
+    try:
+        if b == "docker":
+            return _run_docker(DOCKER_LANGS[lang], files[entry], stdin[:MAX_STDIN], files=files, entry=entry)
+        return _run_local(lang, files[entry], stdin[:MAX_STDIN], files=files, entry=entry)
     finally:
         _slots.release()

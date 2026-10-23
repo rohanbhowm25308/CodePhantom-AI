@@ -111,7 +111,7 @@
       <p class="titleblock__kicker">WELCOME TO</p>
       <h1 class="titleblock__jp">CODE<span>PHANTOM</span></h1>
       <p class="titleblock__en">A I &nbsp;·&nbsp; E V E R Y &nbsp; L A N G U A G E . &nbsp; E V E R Y &nbsp; B U G .</p>
-      <a class="enter" href="#jutsu">Initialize coding system</a>
+      <span class="enter">Initialize coding system</span>
     </div>
 
     <canvas id="featherCanvas" class="feathers"></canvas>
@@ -157,13 +157,38 @@
         <div><h4>Mode</h4><div class="modes" id="modes"></div></div>
         <label class="field">Language<select id="lang"></select></label>
         <label class="field" id="targetWrap" hidden>Convert to<select id="targetLang"></select></label>
-        <div class="history"><h4>Mission history</h4><ul id="historyList"></ul><button class="linkbtn" id="clearHistory" type="button">Clear history</button></div>
+        <label class="field" id="levelWrap" hidden>Explain level<select id="level"><option>Beginner</option><option>Advanced</option></select></label>
+        <details class="memory" id="memBox">
+          <summary>Coding memory <span id="memState">off</span></summary>
+          <textarea id="memText" rows="4" maxlength="1500" placeholder="e.g. I use Python 3.12 and prefer type hints. Project: a Flask API."></textarea>
+          <label class="chk"><input type="checkbox" id="memOn"> Send this with my AI requests</label>
+          <small>Saved only in this browser. When switched on, it is sent to the AI provider (Groq) with every request.</small>
+        </details>
+        <div class="history">
+          <h4>Mission history</h4>
+          <input id="histSearch" type="search" placeholder="Search history…" aria-label="Search history">
+          <ul id="historyList"></ul>
+          <div class="histbtns"><button class="linkbtn" id="exportBtn" type="button">Export report</button><button class="linkbtn" id="clearHistory" type="button">Clear history</button></div>
+        </div>
+        <div class="account" id="account"></div>
         <div class="status" id="status"><span id="statusTxt">Checking backend…</span></div>
       </aside>
-      <section class="arena__main">
+
+      <section class="arena__main" id="main">
         <div class="tabs" role="tablist">
           <button class="tab on" type="button" role="tab" data-tab="assist">AI Assistant</button>
           <button class="tab" type="button" role="tab" data-tab="code">Code &amp; Run</button>
+          <button class="tab" type="button" role="tab" data-tab="practice">Practice</button>
+          <button class="tab" type="button" role="tab" data-tab="projects">Projects</button>
+          <button class="tab" type="button" role="tab" data-tab="labs">Labs</button>
+          <button class="tab" type="button" role="tab" data-tab="dash">Dashboard</button>
+          <span class="tabs__tools">
+            <button type="button" id="evBtn" title="Confidence &amp; evidence panel">Evidence <span id="evCount">0</span></button>
+            <button type="button" id="paletteBtn" title="Command palette (Ctrl + K)">Ctrl K</button>
+            <button type="button" id="splitBtn" title="Show assistant and editor side by side">Split</button>
+            <button type="button" id="themeBtn" title="Light / dark workspace">Theme</button>
+            <button type="button" id="motionBtn" title="Reduce animation">Motion</button>
+          </span>
           <b class="tabs__mode" id="modeName">Solve a problem</b>
         </div>
 
@@ -171,6 +196,11 @@
           <div class="log" id="log" aria-live="polite"></div>
           <div class="composer">
             <div class="codeinfo" id="codeInfo" hidden></div>
+            <div class="attach" id="attachRow" hidden>
+              <button type="button" class="ghostbtn" id="attachBtn">Attach files</button>
+              <input type="file" id="fileIn" multiple hidden>
+              <span id="fileChips"></span>
+            </div>
             <div class="voicebar" id="voiceBar" role="status" hidden></div>
             <div class="promptrow">
               <textarea id="prompt" rows="2"></textarea>
@@ -187,25 +217,60 @@
           <div class="codebar">
             <button type="button" class="go" id="runBtn">Run</button>
             <button type="button" class="ghostbtn" id="testBtn">Run tests</button>
+            <button type="button" class="ghostbtn" id="traceBtn" title="Step through the program with real variable values (Python)">Trace</button>
+            <button type="button" class="ghostbtn" id="genTestsBtn" title="AI suggests sample + edge-case tests">AI tests</button>
+            <button type="button" class="ghostbtn" id="saveSnipBtn">Save</button>
+            <button type="button" class="ghostbtn" id="snipsBtn">Snippets</button>
+            <button type="button" class="ghostbtn" id="fsBtn" title="Full-screen editor">Full screen</button>
             <span class="ask">Ask AI:
               <button type="button" data-ask="debug">Fix</button><button type="button" data-ask="explain">Explain</button><button type="button" data-ask="optimize">Optimize</button><button type="button" data-ask="security">Security</button><button type="button" data-ask="tests">Tests</button>
             </span>
             <small id="runInfo"></small>
           </div>
-          <div class="editorwrap"><div id="editor"></div><textarea id="codeFallback" spellcheck="false" hidden></textarea></div>
+          <div class="snips" id="snipPanel" hidden>
+            <div class="snips__head"><input id="snipSearch" type="search" placeholder="Search snippets…"><select id="snipProject"><option value="">All projects</option></select><small id="snipWhere"></small></div>
+            <ul id="snipList"></ul>
+          </div>
+          <div class="editorwrap" id="editorWrap"><div id="editor"></div><textarea id="codeFallback" spellcheck="false" hidden></textarea></div>
           <div class="io">
             <div class="io__col"><h5>Input (stdin)</h5><textarea id="stdin" spellcheck="false" placeholder="Optional input for the program"></textarea></div>
-            <div class="io__col"><h5>Real output <em>· executed in sandbox</em></h5><div id="runOut" class="runout muted">Press Run (Ctrl + Enter) to execute your code.</div></div>
+            <div class="io__col"><h5>Real output <em>· executed in sandbox</em></h5><div id="runOut" class="runout muted">Press Run (Ctrl + Enter) to execute your code.</div><div class="errchips" id="errChips"></div></div>
           </div>
+          <div class="trace" id="tracePanel" hidden></div>
           <div class="tests">
             <div class="tests__head"><h5>Test cases <em>· real results, compared exactly</em></h5><button type="button" class="linkbtn" id="addTest">+ Add test</button></div>
             <div id="testList"></div>
             <div id="testResults"></div>
           </div>
+          <details class="depbox">
+            <summary>Dependency vulnerability check <em>· OSV.dev</em></summary>
+            <textarea id="depText" rows="4" spellcheck="false" placeholder="Paste requirements.txt (name==1.2.3) or package.json"></textarea>
+            <button type="button" class="ghostbtn" id="depBtn">Check dependencies</button>
+            <div id="depOut"></div>
+          </details>
         </div>
+
+        <div class="view" id="viewPractice" hidden>
+          <div class="pbar">
+            <select id="pTopic" aria-label="Topic"></select>
+            <select id="pDiff" aria-label="Difficulty"><option>Easy</option><option selected>Medium</option><option>Hard</option></select>
+            <button type="button" class="go" id="pNew">New problem</button>
+            <button type="button" class="ghostbtn" id="pDaily">Daily challenge</button>
+            <label class="chk"><input type="checkbox" id="pPressure"> Interview pressure mode</label>
+            <b id="pTimer"></b>
+          </div>
+          <div class="pbody" id="pBody"><div class="welcome"><h3>DSA practice</h3><p>Pick a topic and difficulty, or take today's challenge. Expected outputs come from really running a reference solution, so scoring is exact. Solve it in the Code &amp; Run tab in any language, then submit here.</p></div></div>
+        </div>
+
+        <div class="view" id="viewProjects" hidden><div class="lab" id="prjRoot"></div></div>
+
+        <div class="view" id="viewLabs" hidden><div class="lab" id="labRoot"></div></div>
+
+        <div class="view" id="viewDash" hidden><div class="dash" id="dashBody"></div></div>
       </section>
     </div>
   </div>
+
 
   <!-- bottom-right anchor -->
   <div class="jutsu__amaterasu" aria-hidden="true">
@@ -225,10 +290,38 @@
   <span class="sticky-badge__en">AI ONLINE</span>
 </div>
 
+
+  <aside class="evdrawer" id="evDrawer" hidden>
+    <header><b>Confidence &amp; Evidence</b><span id="evSummary"></span><button type="button" id="evClear">Clear</button><button type="button" id="evClose" aria-label="Close">×</button></header>
+    <div class="evfilters" id="evFilters"></div>
+    <div id="evList"></div>
+    <small>✔ Verified = observed by really running code · ◆ Static = found by code analysis · ✦ AI = a prediction that was not executed · ? Uncertain = limited or unknown.</small>
+  </aside>
+  <div class="overlay" id="palette" hidden>
+    <div class="palette" role="dialog" aria-label="Command palette">
+      <input id="palInput" type="text" placeholder="Type a command…  (↑ ↓ Enter · Esc to close)" autocomplete="off">
+      <ul id="palList"></ul>
+      <small>Shortcuts: Enter send · Ctrl+Enter run · Ctrl+K palette · Alt+1…4 switch tabs · Esc close</small>
+    </div>
+  </div>
+  <div class="overlay" id="authModal" hidden>
+    <div class="modal" role="dialog" aria-label="Account">
+      <h3 id="authTitle">Sign in</h3>
+      <input id="authEmail" type="email" placeholder="Email" autocomplete="email">
+      <input id="authPass" type="password" placeholder="Password (8+ characters)" autocomplete="current-password">
+      <div class="authmsg" id="authMsg"></div>
+      <div class="modal__row"><button type="button" class="ghostbtn" id="authCancel">Cancel</button><button type="button" class="go" id="authGo">Continue</button></div>
+      <button type="button" class="linkbtn" id="authSwitch"></button>
+    </div>
+  </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.5/dist/purify.min.js"></script>
-<script src="main.js"></script>
-<script src="arena.js"></script>
+<script src="main.js?v=4"></script>
+<script src="arena.js?v=5"></script>
+<script src="viz.js?v=5"></script>
+<script src="features.js?v=5"></script>
+<script src="lab.js?v=5"></script>
+<script src="labs.js?v=5"></script>
 </body>
 </html>

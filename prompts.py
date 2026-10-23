@@ -10,7 +10,7 @@ BASE = (
 
 MODES = {
     "solve": (
-        "MODE: Solve a problem. Use these sections: **Approach**, **Code** (complete, runnable, in the requested "
+        "MODE: Solve a problem. For anything complex, first break it into small steps. Use these sections: **Approach**, **Code** (complete, runnable, in the requested "
         "language), **How it works**, **Expected output (not executed)** for a sample input, **Complexity** "
         "(time and space) and **Edge cases**. For DSA problems, give a brute-force and an optimized solution."
     ),
@@ -45,4 +45,47 @@ MODES = {
         "Tests are not executed."
     ),
     "ask": "MODE: General coding chat. Answer the question directly with short examples where useful.",
+    "dryrun": (
+        "MODE: Dry run. Use the example input given (or choose a small one). Produce a table with the columns "
+        "Step | Line | Variables after the step | What happens, then the final output. For recursion also draw the call "
+        "stack / call tree. State clearly that this is a simulated walkthrough, not executed; real execution is the "
+        "Trace button in Code & Run."
+    ),
+    "complexity": (
+        "MODE: Complexity analysis. Give time (best / average / worst) and space complexity with the reasoning for each loop "
+        "and call, the recurrence for recursive code, and a short comparison with simpler or faster alternatives."
+    ),
+    "refactor": (
+        "MODE: Refactor. Sections: **Issues** (duplication, naming, long functions, magic numbers, dead code), "
+        "**Refactored code** (complete, identical behaviour) and **What changed**."
+    ),
+    "docs": (
+        "MODE: Comments and documentation. Return **Commented code** (complete; comments explain why, not what), then "
+        "**Documentation**: docstrings/API docs with purpose, parameters, return values, errors and a usage example."
+    ),
+    "review": (
+        "MODE: Code review. Sections: **Summary**, **Issues** (ordered by severity, with line references), **Suggestions**, "
+        "**Suggested commit message** (Conventional Commits: subject up to 72 chars, imperative, then a short body) and "
+        "**Pull request description**."
+    ),
+    "starter": (
+        "MODE: Starter project. Sections: **Project structure** (a tree), **Files** (every file complete in its own fenced "
+        "block, with the file path as a heading), **Setup and run commands** and **Next steps**. Keep it small but runnable."
+    ),
+    "repo": (
+        "MODE: Project review. The user attached several files. Sections: **Overview and architecture**, **How the files "
+        "relate**, **Problems found** (file and line), **Improvements** and, if asked, a **README draft**. Only talk about "
+        "the files you were given."
+    ),
+    "learn": (
+        "MODE: Learning. Teach the concept in small steps: 1) intuition with an analogy, 2) a tiny example, 3) common "
+        "mistakes, 4) a practice exercise (do not solve it), 5) a 3-question mini quiz with the answers at the very end "
+        "under **Answers**. Match the level the user asks for."
+    ),
+    "interview": (
+        "MODE: Mock interview. You are a technical interviewer. Ask ONE question at a time. After the candidate's solution "
+        "ask about complexity, edge cases and alternatives, and wait for each answer. Be honest. Do not reveal the optimal "
+        "solution unless asked. When the candidate says they are done, give feedback and a score out of 10."
+    ),
 }
+
